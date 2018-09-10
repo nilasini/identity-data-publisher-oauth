@@ -92,6 +92,7 @@
                             version="${identity.framework.version}",
                             org.wso2.carbon.identity.base.*;
                             version="${identity.framework.version}",
+                            org.wso2.carbon; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.utils.multitenancy;version="${carbon.kernel.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core.*;
                             version="${identity.framework.version}",

@@ -18,9 +18,14 @@
 
 package org.wso2.carbon.identity.data.publisher.oauth;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.wso2.carbon.CarbonConstants;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.core.handler.AbstractIdentityHandler;
 import org.wso2.carbon.identity.data.publisher.oauth.internal.OAuthDataPublisherServiceHolder;
 import org.wso2.carbon.identity.oauth.common.OAuthConstants;
+import org.wso2.carbon.identity.oauth.dao.OAuthAppDO;
 import org.wso2.carbon.identity.oauth.dto.OAuthRevocationRequestDTO;
 import org.wso2.carbon.identity.oauth.dto.OAuthRevocationResponseDTO;
 import org.wso2.carbon.identity.oauth.event.OAuthEventInterceptor;
@@ -43,6 +48,7 @@ public class OAuthInterceptorHandlerProxy extends AbstractIdentityHandler implem
 
     private List<OAuthEventInterceptor> oAuthEventInterceptors = OAuthDataPublisherServiceHolder.getInstance()
             .getOAuthEventInterceptors();
+    private static final Log AUDIT_LOG = CarbonConstants.AUDIT_LOG;
 
     @Override
     public void onPreTokenIssue(OAuth2AccessTokenReqDTO oAuth2AccessTokenReqDTO, OAuthTokenReqMessageContext
@@ -65,7 +71,27 @@ public class OAuthInterceptorHandlerProxy extends AbstractIdentityHandler implem
                         oAuthTokenReqMessageContext, params);
             }
         }
+        if ("password".equalsIgnoreCase(oAuth2AccessTokenReqDTO.getGrantType())) {
+            String auditData = "\"" + "GrantType" + "\" : \"" + oAuthTokenReqMessageContext.getOauth2AccessTokenReqDTO().getGrantType()
+                    + "\",\"" + "ServiceProviderName" + "\" : \"" + ((OAuthAppDO) oAuthTokenReqMessageContext.getProperty
+                    ("OAuthAppDO")).getApplicationName()
+                    + "\",\"" + "RelyingParty" + "\" : \"" + oAuthTokenReqMessageContext.getOauth2AccessTokenReqDTO()
+                    .getClientId() + "\"";
 
+            if (StringUtils.isNotBlank(oAuth2AccessTokenRespDTO.getErrorCode())) {
+                AUDIT_LOG.info(String.format(
+                        FrameworkConstants.AUDIT_MESSAGE,
+                        oAuthTokenReqMessageContext.getOauth2AccessTokenReqDTO().getResourceOwnerUsername(),
+                        oAuth2AccessTokenRespDTO.getErrorCode(),
+                        "ApplicationAuthenticationFramework", auditData, oAuth2AccessTokenRespDTO.getErrorMsg()));
+            } else {
+                AUDIT_LOG.info(String.format(
+                        FrameworkConstants.AUDIT_MESSAGE,
+                        oAuthTokenReqMessageContext.getOauth2AccessTokenReqDTO().getResourceOwnerUsername(),
+                        "PasswordGrantSuccess",
+                        "ApplicationAuthenticationFramework", auditData, FrameworkConstants.AUDIT_SUCCESS));
+            }
+        }
     }
 
     @Override
